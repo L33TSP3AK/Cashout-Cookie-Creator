@@ -16,7 +16,6 @@ Welcome to the Cashout Cookie Checker! This tool is designed to help users manag
 
 Click the button above to download the latest release!
 
-![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FL33TSP3AK%2FCashout-Cookie-Creator&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=views&edge_flat=false)
 
 
 
