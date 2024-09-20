@@ -12,7 +12,7 @@ Welcome to the Cashout Cookie Checker! This tool is designed to help users manag
 
 ## Launch Release
 
-[![Launch Release](https://img.shields.io/badge/Launch%20Release-v1.0.0-brightgreen)](https://github.com/L33TSP3AK/Cashout-Cookie-Creator/releases/latest)
+[![Launch Release](https://img.shields.io/badge/Launch%20Release-v1.4.5-brightgreen)](https://github.com/L33TSP3AK/Cashout-Cookie-Creator/releases/latest)
 
 Click the button above to download the latest release!
 
