@@ -11,10 +11,12 @@ Welcome to the Cashout Cookie Checker! This tool is designed to help users manag
 ![image](https://github.com/user-attachments/assets/a65de3af-aab7-47be-8cc9-f0c30abb6ae8)
 
 ## Launch Release
-
+![GitHub all releases](https://img.shields.io/github/downloads/L33TSP3AK/Cashout-Cookie-Creator/total?style=for-the-badge)
 [![Launch Release](https://img.shields.io/badge/Launch%20Release-v1.4.5-brightgreen)](https://github.com/L33TSP3AK/Cashout-Cookie-Creator/releases/latest)
 
 Click the button above to download the latest release!
+
+![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FL33TSP3AK%2FCashout-Cookie-Creator&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=views&edge_flat=false)
 
 ## Join Us on Telegram
 
