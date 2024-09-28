@@ -31,7 +31,7 @@ Click the button above to download the latest release!
 
 Stay updated and connect with other users in our Telegram group:
 
-[Join Telegram Group](https://t.me/your_telegram_group_link)
+[Subscribe To Our Bot For Updates](https://t.me/L33T_Assistant_Bot)
 
 ## Installation
 
