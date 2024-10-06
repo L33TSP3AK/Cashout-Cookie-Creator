@@ -377,6 +377,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_DiamondDumper):
         self.tray_icon.setIcon(QtGui.QIcon('cookie_creator.ico'))  # Set the tray icon
         self.tray_icon.show()
         self.toolButton.clicked.connect(self.show_product_info)
+        if hasattr(self, 'parse_single_element_radiobutton'):
+            self.parse_single_element_radiobutton.toggled.connect(self.parse_single_element_changed)
+        if hasattr(self, 'parse_multiple_elements_radiobutton'):
+            self.parse_multiple_elements_radiobutton.toggled.connect(self.parse_multiple_elements_changed)
 
         
         
@@ -451,6 +455,39 @@ class MainWindow(QtWidgets.QMainWindow, Ui_DiamondDumper):
         self.capture_3_after.setEnabled(state == QtCore.Qt.Checked)
         self.capture_3_before.setEnabled(state == QtCore.Qt.Checked)
         pass
+
+    def enable_capture_frame(self, state):
+        is_enabled = state == QtCore.Qt.Checked
+        
+        # Enable or disable specific widgets based on the checkbox state
+        self.capture_1_after.setEnabled(is_enabled)
+        self.capture_1_before.setEnabled(is_enabled)
+        self.capture_2_after.setEnabled(is_enabled)
+        self.capture_2_before.setEnabled(is_enabled)
+        self.capture_3_after.setEnabled(is_enabled)
+        self.capture_3_before.setEnabled(is_enabled)
+        
+        # Enable/disable radio buttons based on checkbox state
+        if hasattr(self, 'parse_single_element_radiobutton'):
+            self.parse_single_element_radiobutton.setEnabled(is_enabled)
+        if hasattr(self, 'parse_multiple_elements_radiobutton'):
+            self.parse_multiple_elements_radiobutton.setEnabled(is_enabled)
+        
+        # Clear radio button selection when checkbox is unchecked
+        if not is_enabled:
+            if hasattr(self, 'parse_single_element_radiobutton'):
+                self.parse_single_element_radiobutton.setChecked(False)
+            if hasattr(self, 'parse_multiple_elements_radiobutton'):
+                self.parse_multiple_elements_radiobutton.setChecked(False)
+    
+    def parse_single_element_changed(self, checked):
+        if checked:
+            self.parse_multiple_elements_radiobutton.setChecked(False)
+    
+    def parse_multiple_elements_changed(self, checked):
+        if checked:
+            self.parse_single_element_radiobutton.setChecked(False)
+
 
     def open_search_dialog(self):
         # Create and show the search dialog
@@ -644,8 +681,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_DiamondDumper):
             # Create a session to handle cookies
             session = requests.Session()
     
-                # Load cookies
-            # Load cookies from the file if it exists
+            # Load cookies
             if hasattr(self, 'last_loaded_cookie_file'):
                 cookie_domain = self.cookie_domain_edit.toPlainText().strip()
                 with open(self.last_loaded_cookie_file, 'r') as file:
@@ -690,7 +726,37 @@ class MainWindow(QtWidgets.QMainWindow, Ui_DiamondDumper):
                 QMessageBox.warning(self, "Error", error_message)
                 return
     
-            # Display the response in the text edit
+            # Parse captures if enabled
+            parsed_captures = []
+            if self.enable_captures_checkBox.isChecked():
+                response_text = response.text
+                
+                for i in range(1, 4):  # For capture_1, capture_2, and capture_3
+                    before = getattr(self, f'capture_{i}_before').toPlainText().strip()
+                    after = getattr(self, f'capture_{i}_after').toPlainText().strip()
+                    if before and after:
+                        try:
+                            start = response_text.index(before) + len(before)
+                            end = response_text.index(after, start)
+                            captured_value = response_text[start:end].strip()
+                            parsed_captures.append(f"Capture {i}: {captured_value}")
+                        except ValueError:
+                            parsed_captures.append(f"Capture {i}: Not found")
+    
+                # Determine which parsing method to use
+                if self.parse_single_element_radiobutton.isChecked():
+                    parsing_method = "Single Element"
+                elif self.parse_multiple_elements_radiobutton.isChecked():
+                    parsing_method = "Multiple Elements"
+                else:
+                    parsing_method = "No parsing method selected"
+    
+                # Display parsed captures in capture_value_response_textedit
+                capture_response = f"Parsing Method: {parsing_method}\n\n"
+                capture_response += "\n".join(parsed_captures)
+                self.capture_value_response_textedit.setPlainText(capture_response)
+    
+            # Display the full response in the http_response_textEdit
             response_text = f"Status Code: {response.status_code}\n\nHeaders:\n"
             for key, value in response.headers.items():
                 response_text += f"{key}: {value}\n"
@@ -699,6 +765,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_DiamondDumper):
     
             # Log the request (you might want to add more details)
             logging.info(f"Request sent to {url} with method {request_type}")
+            if parsed_captures:
+                logging.info(f"Parsed captures: {parsed_captures}")
     
         except requests.Timeout:
             QMessageBox.critical(self, "Request Error", "The request timed out. Please try again or check your internet connection.")
