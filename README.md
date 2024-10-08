@@ -2,6 +2,7 @@
 
 Welcome to the Cashout Cookie Checker! This tool is designed to help users manage and analyze cookie data effectively.
 
+![image-removebg-preview](https://github.com/user-attachments/assets/a9354cf0-8a52-4b12-a596-9c4ae14c2350)
 
 [![GitHub all releases](https://img.shields.io/github/downloads/L33TSP3AK/Cashout-Cookie-Creator/total?style=for-the-badge&logo=github&labelColor=282828&color=4CAF50)](https://github.com/L33TSP3AK/Cashout-Cookie-Creator/releases)
 [![GitHub stars](https://img.shields.io/github/stars/L33TSP3AK/Cashout-Cookie-Creator?style=for-the-badge&logo=github&labelColor=282828&color=FFA500)](https://github.com/L33TSP3AK/Cashout-Cookie-Creator/stargazers)
