@@ -28,11 +28,6 @@ Click the button above to download the latest release!
 ![image](https://github.com/user-attachments/assets/46b288e3-d34f-45fa-a9e7-fac3cbfd6881)
 ![image](https://github.com/user-attachments/assets/a65de3af-aab7-47be-8cc9-f0c30abb6ae8)
 
-## Join Us on Telegram
-
-Stay updated and connect with other users in our Telegram group:
-
-[Subscribe To Our Bot For Updates](https://t.me/L33T_Assistant_Bot)
 
 ## Installation
 
