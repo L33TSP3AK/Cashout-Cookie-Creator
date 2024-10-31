@@ -19,6 +19,10 @@ Click the button above to download the latest release!
 
 
 
+https://github.com/user-attachments/assets/024f95db-3502-4e6c-9c98-852d422c81e1
+
+
+
 
 ## Features
 
