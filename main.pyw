@@ -25,41 +25,135 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 class SearchDialog(QDialog):
     def __init__(self, parent=None):
         super(SearchDialog, self).__init__(parent)
-        self.setWindowTitle("Search")
-        self.setGeometry(100, 100, 300, 100)
-        
-        self.search_label = QLabel("Find:")
-        self.search_input = QLineEdit(self)
-        
-        self.search_button = QPushButton("Search", self)
-        self.search_button.clicked.connect(self.accept)
+        self.setWindowTitle("Find")
+        self.setGeometry(100, 100, 400, 150)
 
-        layout = QHBoxLayout()
-        layout.addWidget(self.search_label)
-        layout.addWidget(self.search_input)
-        layout.addWidget(self.search_button)
+        # Create widgets
+        self.find_label = QLabel("Find:")
+        self.find_input = QLineEdit(self)
+        self.find_input.setPlaceholderText("Enter search term...")
         
+        self.find_button = QPushButton("Find", self)  # Changed label from "Search" to "Find"
+        self.clear_button = QPushButton("Clear", self)
+        self.result_label = QLabel("Occurrences: 0", self)
+        self.find_next_button = QPushButton("Find Next", self)  # Add Find Next button
+
+        # Connect button clicks
+        self.find_button.clicked.connect(self.perform_find)
+        self.clear_button.clicked.connect(self.clear_find)
+        self.find_next_button.clicked.connect(self.find_next)  # Connect Find Next button
+
+        # Keyboard shortcut for finding
+        self.find_button.setShortcut('Return')  # Pressing Enter will trigger the find
+
+        # Set up layout
+        layout = QVBoxLayout()
+        input_layout = QHBoxLayout()
+        
+        input_layout.addWidget(self.find_label)
+        input_layout.addWidget(self.find_input)
+        input_layout.addWidget(self.find_button)
+        input_layout.addWidget(self.clear_button)
+        input_layout.addWidget(self.find_next_button)  # Add Find Next button to layout
+
+        layout.addLayout(input_layout)
+        layout.addWidget(self.result_label)
+
+        # Set layout
         self.setLayout(layout)
-    
-    def get_search_term(self):
-        return self.search_input.text()
+
+    def perform_find(self):
+        find_term = self.get_find_term()
+        
+        if not find_term:
+            QMessageBox.warning(self, "Input Error", "Please enter a valid search term.")
+            return
+        
+        occurrences = self.highlight_and_scroll(find_term)  # Highlight and scroll to occurrences
+        self.set_result_count(occurrences)
+
+    def clear_find(self):
+        """Clear the search input and reset results."""
+        self.find_input.clear()
+        self.set_result_count(0)
+
+    def get_find_term(self):
+        return self.find_input.text()
+
     def set_result_count(self, count):
         self.result_label.setText(f"Occurrences: {count}")
 
+    def highlight_and_scroll(self, term):
+        """Highlight all occurrences of the term and scroll to the first occurrence."""
+        
+        # Clear previous highlights
+        cursor = self.parent().http_response_textEdit.textCursor()  # Assuming parent has this QTextEdit
+        cursor.select(QTextCursor.Document)  # Select all text for clearing highlights
+        cursor.setCharFormat(QTextCharFormat())  # Reset formatting
+        self.parent().http_response_textEdit.setTextCursor(cursor)
+
+        # Highlight format
+        highlight_format = QTextCharFormat()
+        highlight_format.setBackground(QColor("yellow"))
+
+        occurrences = 0
+        cursor = self.parent().http_response_textEdit.document().find(term)
+
+        while not cursor.isNull():
+            occurrences += 1
+            cursor.mergeCharFormat(highlight_format)  # Apply highlight format
+            cursor = self.parent().http_response_textEdit.document().find(term, cursor)  # Find next occurrence
+
+        if occurrences > 0:
+            cursor = self.parent().http_response_textEdit.document().find(term)  # Reset cursor for scrolling
+            if not cursor.isNull():
+                self.parent().http_response_textEdit.setTextCursor(cursor)
+                self.parent().http_response_textEdit.ensureCursorVisible()  # Ensure found text is visible
+
+            return occurrences
+        
+        return 0
+
+    def find_next(self):
+        """Find the next occurrence of the search term."""
+        
+        search_term = self.get_find_term()
+        
+        if not search_term:
+            QMessageBox.warning(self, "Input Error", "Please enter a valid search term.")
+            return
+        
+        if hasattr(self.parent(), 'current_cursor_position'):
+            current_position = getattr(self.parent(), 'current_cursor_position', 0)
+            cursor = self.parent().http_response_textEdit.textCursor()
+            cursor.setPosition(current_position)
+
+            cursor = self.parent().http_response_textEdit.document().find(search_term, cursor)
+
+            if not cursor.isNull():
+                current_position = cursor.position() + len(search_term)  # Move past this occurrence
+                setattr(self.parent(), 'current_cursor_position', current_position)  # Update position
+                self.parent().http_response_textEdit.setTextCursor(cursor)
+                self.parent().http_response_textEdit.ensureCursorVisible()  # Ensure found text is visible
+            else:
+                QMessageBox.information(self, "Search", "No more occurrences found.")
+                setattr(self.parent(), 'current_cursor_position', 0)  # Reset to start if no more occurrences are found
+
 
 class UserAgentComboBox(QComboBox):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, tooltip_delay=2000):
         super().__init__(parent)
-        
+
         self.setMouseTracking(True)
         self.view().setMouseTracking(True)
-        
+
         self.hover_timer = QTimer(self)
         self.hover_timer.setSingleShot(True)
         self.hover_timer.timeout.connect(self.show_tooltip)
-        
+
         self.current_index = -1
-        
+        self.tooltip_delay = tooltip_delay  # Configurable tooltip delay
+
         # Set a custom font for the tooltip
         QToolTip.setFont(QFont('SansSerif', 10))
 
@@ -69,7 +163,7 @@ class UserAgentComboBox(QComboBox):
                 index = self.view().indexAt(event.pos())
                 if index.isValid() and index.row() != self.current_index:
                     self.current_index = index.row()
-                    self.hover_timer.start(2000)  # 2 seconds
+                    self.hover_timer.start(self.tooltip_delay)  # Use configurable delay
                 elif not index.isValid():
                     self.hide_tooltip()
             elif event.type() == Qt.QEvent.Leave:
@@ -88,9 +182,15 @@ class UserAgentComboBox(QComboBox):
     def show_tooltip(self):
         if 0 <= self.current_index < self.count():
             item_text = self.itemText(self.current_index)
-            QToolTip.showText(self.mapToGlobal(self.view().visualRect(self.model().index(self.current_index, 0)).bottomLeft()), 
-                              item_text, 
-                              self)
+            item_rect = self.view().visualRect(self.model().index(self.current_index, 0))
+            global_pos = self.mapToGlobal(item_rect.bottomLeft())
+
+            # Adjust tooltip position to avoid going off-screen
+            screen_rect = QApplication.desktop().screenGeometry()
+            if global_pos.x() + 200 > screen_rect.right():  # Adjust tooltip width as needed
+                global_pos.setX(screen_rect.right() - 200)
+
+            QToolTip.showText(global_pos, item_text, self)
 
     def hide_tooltip(self):
         self.hover_timer.stop()
@@ -98,8 +198,10 @@ class UserAgentComboBox(QComboBox):
         QToolTip.hideText()
 
     def add_user_agents(self, user_agents):
+        """Add user agents to the combo box."""
         for agent in user_agents:
             self.addItem(agent)
+
 
 
 
@@ -159,17 +261,17 @@ class ProductInfoDialog(QDialog):
         self.description.setPlainText("A tool for managing and analyzing cookie data.")
         self.description.setReadOnly(True)
 
-        self.repository_link = QLabel('<a href="https://github.com/L33TSP3AK/Cashout-Cookie-Creator">GitHub Repository</a>')
+        self.repository_link = QLabel('<a href="https://github.com/Plug-Outlet/Cashout-Cookie-Creator">GitHub Repository</a>')
         self.repository_link.setOpenExternalLinks(True)
 
         self.developer_notes = QTextEdit()
-        self.developer_notes.setPlainText("Developer Notes:\n- Version 1.4\n- Last updated: 2023-09-19\n- Known issues: **IN DEVELOPMENT**")
+        self.developer_notes.setPlainText("Developer Notes:\n- Version 1.5\n- Last updated: 2023-10-31\n- Known issues: **IN DEVELOPMENT**")
         self.developer_notes.setReadOnly(True)
 
-        self.developer_info = QLabel("Developed By: @CashMoneyL33T")
-        self.social_link = QLabel('<a href="https://t.me/CashMoneyL33T">Social Link</a>')
+        self.developer_info = QLabel("Developed By: @Doomsday_X_Productions")
+        self.social_link = QLabel('<a href="https://github.com/L33TSP3AK">Social Link</a>')
         self.social_link.setOpenExternalLinks(True)
-        self.social_channel = QLabel('<a href="https://t.me/L33TSP3AK1337">Social Channel</a>')
+        self.social_channel = QLabel('<a href="https://t.me/Doomsday_X_Productions">Social Channel</a>')
         self.social_channel.setOpenExternalLinks(True)
 
         form_layout.addRow("Product:", self.product_name)
@@ -214,7 +316,7 @@ class ProductInfoDialog(QDialog):
         pass
 
     def open_telegram_channel(self):
-        QDesktopServices.openUrl(QUrl("https://t.me/L33TSP3AK1337"))
+        QDesktopServices.openUrl(QUrl("https://t.me/Doomsday_X_Productions"))
 
     def check_for_updates(self):
         self.check_updates_button.setEnabled(False)
@@ -250,7 +352,7 @@ class ProductInfoDialog(QDialog):
 
     def get_latest_version(self):
         try:
-            response = requests.get("https://api.github.com/repos/L33TSP3AK/Cashout-Cookie-Creator/releases/latest")
+            response = requests.get("https://api.github.com/Plug-Outlet/Cashout-Cookie-Creator/releases/latest")
             response.raise_for_status()
             latest_release = response.json()
             return latest_release['tag_name'].lstrip('v')
@@ -272,7 +374,7 @@ class UpdateCheckerThread(QThread):
     def run(self):
         try:
             # Fetch the latest release information from GitHub
-            response = requests.get("https://api.github.com/repos/L33TSP3AK/Cashout-Cookie-Creator/releases/latest")
+            response = requests.get("https://api.github.com/Plug-Outlet/Cashout-Cookie-Creator/releases/latest")
             response.raise_for_status()
             latest_release = response.json()
 
@@ -556,60 +658,65 @@ class MainWindow(QtWidgets.QMainWindow, Ui_DiamondDumper):
     def open_search_dialog(self):
         # Create and show the search dialog
         search_dialog = SearchDialog(self)
-        
-        # Calculate the center position of the main window
-        main_window_rect = self.geometry()
-        dialog_rect = search_dialog.geometry()
-        
-        # Set the dialog's position to the center of the main window
-        center_x = main_window_rect.x() + (main_window_rect.width() - dialog_rect.width()) // 2
-        center_y = main_window_rect.y() + (main_window_rect.height() - dialog_rect.height()) // 2
-        search_dialog.move(center_x, center_y)
-        
-        # Execute the dialog and check if it was accepted
-        if search_dialog.exec_() == QDialog.Accepted:
+
+        # Center the dialog relative to the main window
+        search_dialog.setWindowModality(Qt.ApplicationModal)  # Make it modal
+        search_dialog.exec_()  # Show dialog
+
+        # If accepted, perform the search
+        if search_dialog.result() == QDialog.Accepted:
             search_term = search_dialog.get_search_term()
             self.search_in_text_edit(search_term)
-    
+
     def search_in_text_edit(self, search_term):
+        if not search_term:
+            QMessageBox.warning(self, "Input Error", "Please enter a valid search term.")
+            return
+
         # Clear previous highlights
         cursor = self.http_response_textEdit.textCursor()
-        cursor.setPosition(0)
+        cursor.select(QTextCursor.Document)  # Select all text for clearing highlights
+        cursor.setCharFormat(QTextCharFormat())  # Reset formatting
         self.http_response_textEdit.setTextCursor(cursor)
 
         # Highlight format
-        format = QtGui.QTextCharFormat()
-        format.setBackground(QtGui.QBrush(QtGui.QColor("yellow")))
+        highlight_format = QTextCharFormat()
+        highlight_format.setBackground(QColor("yellow"))
 
-        # Find all occurrences of the search term
+        # Find all occurrences of the search term and highlight them
         occurrences = 0
-        while not cursor.isNull() and not cursor.atEnd():
-            cursor = self.http_response_textEdit.document().find(search_term, cursor)
-            if not cursor.isNull():
-                occurrences += 1
-                cursor.mergeCharFormat(format)
+        cursor = self.http_response_textEdit.document().find(search_term, cursor)
 
+        while not cursor.isNull():
+            occurrences += 1
+            cursor.mergeCharFormat(highlight_format)  # Apply highlight format
+            cursor = self.http_response_textEdit.document().find(search_term, cursor)  # Find next occurrence
 
-
-        # If occurrences are found, start searching from the beginning
+        # Update current position for next find operation
         if occurrences > 0:
-            self.find_next(search_term)
+            self.current_cursor_position = 0  # Reset to start for next find
+            self.find_next(search_term)  # Optionally find the first occurrence
+            QMessageBox.information(self, "Search Complete", f"Found {occurrences} occurrences.")
+        else:
+            QMessageBox.information(self, "Search Complete", "No occurrences found.")
 
     def find_next(self, search_term):
-        # Move the cursor to the current position
+        if self.current_cursor_position >= self.http_response_textEdit.document().characterCount():
+            self.current_cursor_position = 0  # Wrap around to start
+
         cursor = self.http_response_textEdit.textCursor()
         cursor.setPosition(self.current_cursor_position)
-        self.http_response_textEdit.setTextCursor(cursor)
-
-        # Find the next occurrence
+        
         cursor = self.http_response_textEdit.document().find(search_term, cursor)
+
         if not cursor.isNull():
-            # Highlight the found text
-            self.current_cursor_position = cursor.position()
+            self.current_cursor_position = cursor.position() + len(search_term)  # Move past this occurrence
             self.http_response_textEdit.setTextCursor(cursor)
+            self.http_response_textEdit.ensureCursorVisible()  # Ensure found text is visible
         else:
-            # Reset to start if no more occurrences
-            self.current_cursor_position = 0
+            QMessageBox.information(self.search_dialog, "Search", "No more occurrences found.")
+            self.current_cursor_position = 0  # Reset to start if no more occurrences are found
+
 ########################################################
 
 
@@ -726,47 +833,27 @@ class MainWindow(QtWidgets.QMainWindow, Ui_DiamondDumper):
                 QMessageBox.warning(self, "Error", error_message)
                 return
     
-            # Parse captures if enabled
-            parsed_captures = []
-            if self.enable_captures_checkBox.isChecked():
-                response_text = response.text
-                
-                for i in range(1, 4):  # For capture_1, capture_2, and capture_3
-                    before = getattr(self, f'capture_{i}_before').toPlainText().strip()
-                    after = getattr(self, f'capture_{i}_after').toPlainText().strip()
-                    if before and after:
-                        try:
-                            start = response_text.index(before) + len(before)
-                            end = response_text.index(after, start)
-                            captured_value = response_text[start:end].strip()
-                            parsed_captures.append(f"Capture {i}: {captured_value}")
-                        except ValueError:
-                            parsed_captures.append(f"Capture {i}: Not found")
-    
-                # Determine which parsing method to use
-                if self.parse_single_element_radiobutton.isChecked():
-                    parsing_method = "Single Element"
-                elif self.parse_multiple_elements_radiobutton.isChecked():
-                    parsing_method = "Multiple Elements"
-                else:
-                    parsing_method = "No parsing method selected"
-    
-                # Display parsed captures in capture_value_response_textedit
-                capture_response = f"Parsing Method: {parsing_method}\n\n"
-                capture_response += "\n".join(parsed_captures)
-                self.capture_value_response_textedit.setPlainText(capture_response)
+            # Check for valid response text indicating a successful login
+            if valid_response_text and valid_response_text in response.text:
+                QMessageBox.information(self, "Success", "Successful Login!")
     
             # Display the full response in the http_response_textEdit
-            response_text = f"Status Code: {response.status_code}\n\nHeaders:\n"
+            response_text = f"Status Code: {response.status_code}\n"
+            
+            # Count number of lines in the response body
+            num_lines = len(response.text.splitlines())
+            
+            response_text += f"Number of Lines: {num_lines}\n\nHeaders:\n"
+            
             for key, value in response.headers.items():
                 response_text += f"{key}: {value}\n"
+            
             response_text += f"\nBody:\n{response.text}"
+            
             self.http_response_textEdit.setPlainText(response_text)
     
             # Log the request (you might want to add more details)
             logging.info(f"Request sent to {url} with method {request_type}")
-            if parsed_captures:
-                logging.info(f"Parsed captures: {parsed_captures}")
     
         except requests.Timeout:
             QMessageBox.critical(self, "Request Error", "The request timed out. Please try again or check your internet connection.")
@@ -775,7 +862,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_DiamondDumper):
         except Exception as e:
             QMessageBox.critical(self, "Unexpected Error", f"An unexpected error occurred: {e}")
             logging.exception("Unexpected error in send_request")
-
 ################################ Cookies ##########################################
 
     def load_cookies_function(self):
@@ -1052,11 +1138,11 @@ class CustomDialog(QDialog):
         secondPageLayout = QVBoxLayout()
         
         # Developer contact information
-        contactLabel = QLabel("Developer Contact: developer@example.com")
+        contactLabel = QLabel("Developer Contact: https://github.com/orgs/Plug-Outlet/discussions")
         secondPageLayout.addWidget(contactLabel)
 
         # Version number
-        versionLabel = QLabel("Version: 1.0.0")
+        versionLabel = QLabel("Version: 1.5.0")
         secondPageLayout.addWidget(versionLabel)
 
         # Update button
