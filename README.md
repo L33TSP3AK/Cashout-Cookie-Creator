@@ -1,6 +1,9 @@
-# Cashout Cookie Checker
+# Cashout Cookie Creator
 
-Welcome to the Cashout Cookie Checker! This tool is designed to help users manage and analyze cookie data effectively.
+![Alt](https://repobeats.axiom.co/api/embed/7b300c14c2b7c2cd39a880221e520e32bf9018c9.svg "Repobeats analytics image")
+
+
+Welcome to the Cashout Cookie Creator! This tool is designed to help users develop cookie checking configs and analyze cookie data effectively.
 
 ![image-removebg-preview](https://github.com/user-attachments/assets/a9354cf0-8a52-4b12-a596-9c4ae14c2350)
 
